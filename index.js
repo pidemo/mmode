@@ -1,4 +1,4 @@
-console.log("Script running!");
+console.log("Script running locally latest!");
 
 // Replace with your actual Stripe Publishable Key
 const STRIPE_PUBLISHABLE_KEY =
@@ -30,13 +30,31 @@ triggers.forEach((trigger) => {
 });
 
 async function initializeCheckout(customValue) {
+  // 0. Get Memberstack Member ID
+  let memberId = null;
+  if (window.$memberstackDom) {
+    try {
+      const { data: member } = await window.$memberstackDom.getCurrentMember();
+      memberId = member ? member.id : null;
+    } catch (err) {
+      console.warn("Error fetching Memberstack member:", err);
+    }
+  }
+
+  if (!memberId) {
+    console.warn("No Memberstack member ID found. Proceeding without it.");
+  }
+
   // 1. Fetch the Client Secret from Make.com
   const response = await fetch(MAKE_WEBHOOK_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ customValue }),
+    body: JSON.stringify({
+      customValue,
+      memberId,
+    }),
   });
 
   if (!response.ok) {
@@ -52,7 +70,7 @@ async function initializeCheckout(customValue) {
   }
 
   // 2. Initialize Stripe
-  // Ensure Stripe.js is loaded on the page: <script src="https://js.stripe.com/v3/"></script>
+  // Ensure Stripe.js is loaded on the page
   if (typeof Stripe === "undefined") {
     throw new Error("Stripe.js is not loaded");
   }
@@ -60,8 +78,6 @@ async function initializeCheckout(customValue) {
   const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
 
   // 3. Mount Embedded Checkout
-  // We need a container. Let's create a modal overlay for a true "embedded" feel
-  // or use an existing container if you prefer.
   let checkoutContainer = document.getElementById("checkout-container");
 
   if (!checkoutContainer) {
@@ -91,12 +107,25 @@ async function initializeCheckout(customValue) {
 
     // Add close button
     const closeBtn = document.createElement("button");
-    closeBtn.textContent = "Close";
+    closeBtn.textContent = "✕"; // Multiply sign (cross)
+    closeBtn.style.background = "none";
+    closeBtn.style.backgroundColor = "transparent";
+    closeBtn.style.border = "none";
+    closeBtn.style.borderRadius = "50%";
+    closeBtn.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.12)";
+    closeBtn.style.width = "36px";
+    closeBtn.style.height = "36px";
+    closeBtn.style.display = "flex";
+    closeBtn.style.alignItems = "center";
+    closeBtn.style.justifyContent = "center";
+    closeBtn.style.fontSize = "20px";
+    closeBtn.style.cursor = "pointer";
+    closeBtn.style.marginBottom = "10px";
+
     closeBtn.onclick = () => {
       checkout.destroy();
       document.body.removeChild(checkoutContainer);
     };
-    closeBtn.style.marginBottom = "10px";
 
     innerDiv.appendChild(closeBtn);
 
