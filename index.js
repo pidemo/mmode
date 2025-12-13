@@ -1,26 +1,28 @@
 console.log("Script running locally latest!");
 
-// Replace with your actual Stripe Publishable Key
 const STRIPE_PUBLISHABLE_KEY =
-  "pk_test_51S3b0mA4ySekrCDhyT2VYq5plJpBQHvhvKfRrZpLBTgYK53SvqKY3LiJS6KNTEakc4C7rO26KzNL4yyjYwe0u4Qt008SM5Aidt";
-// Replace with your Make.com Webhook URL
+  // PMode Test Key
+  //"pk_test_51S3b0mA4ySekrCDhyT2VYq5plJpBQHvhvKfRrZpLBTgYK53SvqKY3LiJS6KNTEakc4C7rO26KzNL4yyjYwe0u4Qt008SM5Aidt";
+  // MMode Test Key
+  "pk_test_7DoZiEh5gsTdhGuh2a5Rf0Px";
 const MAKE_WEBHOOK_URL =
   "https://hook.us1.make.com/2n32xzpj9q5xl5h2jgy33erruv5m6tfo";
 
-const triggers = document.querySelectorAll("[data-custom]");
+const triggers = document.querySelectorAll("[data-target]");
 
 triggers.forEach((trigger) => {
   trigger.addEventListener("click", async (e) => {
     e.preventDefault(); // Prevent default link behavior if it's an anchor tag
     console.log("Trigger clicked!");
 
-    const customValue = trigger.getAttribute("data-custom");
+    const customValue = trigger.getAttribute("data-target");
     if (!customValue) {
-      console.error("No data-custom value found");
+      console.error("No data-target value found");
       return;
     }
 
     try {
+      //console.log("Target value:", customValue);
       await initializeCheckout(customValue);
     } catch (error) {
       console.error("Error initializing checkout:", error);
@@ -31,18 +33,37 @@ triggers.forEach((trigger) => {
 
 async function initializeCheckout(customValue) {
   // 0. Get Memberstack Member ID
-  let memberId = null;
+  let memberMSID = null;
+  let memberSCID = null;
+  let memberATID = null;
+  let memberWFID = null;
   if (window.$memberstackDom) {
     try {
       const { data: member } = await window.$memberstackDom.getCurrentMember();
-      memberId = member ? member.id : null;
+      memberMSID = member ? member.id : null;
+      memberSCID =
+        member && member.customFields ? member.customFields["item-scid"] : null;
+      memberATID =
+        member && member.customFields ? member.customFields["item-atid"] : null;
+      memberWFID =
+        member && member.customFields ? member.customFields["item-id"] : null;
     } catch (err) {
       console.warn("Error fetching Memberstack member:", err);
     }
   }
 
-  if (!memberId) {
-    console.warn("No Memberstack member ID found. Proceeding without it.");
+  if (!memberMSID || !memberSCID || !memberATID || !memberWFID) {
+    console.warn(
+      `Missing a parameter: ${
+        !memberMSID
+          ? "memberMSID"
+          : !memberSCID
+          ? "memberSCID"
+          : !memberATID
+          ? "memberATID"
+          : "memberWFID"
+      }. Proceeding without it.`
+    );
   }
 
   // 1. Fetch the Client Secret from Make.com
@@ -52,8 +73,11 @@ async function initializeCheckout(customValue) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      customValue,
-      memberId,
+      targetValue: customValue,
+      memberMSID,
+      memberSCID,
+      memberATID,
+      memberWFID,
     }),
   });
 
