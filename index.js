@@ -1,10 +1,16 @@
 console.log("Script running locally latest!");
 
-const STRIPE_PUBLISHABLE_KEY =
-  // PMode Test Key
-  //"pk_test_51S3b0mA4ySekrCDhyT2VYq5plJpBQHvhvKfRrZpLBTgYK53SvqKY3LiJS6KNTEakc4C7rO26KzNL4yyjYwe0u4Qt008SM5Aidt";
-  // MMode Test Key
-  "pk_test_7DoZiEh5gsTdhGuh2a5Rf0Px";
+// Determine mode based on domain
+const isTestMode = window.location.hostname.includes("webflow.io");
+const mode = isTestMode ? "test" : "live";
+console.log(`Running in ${mode} mode`);
+
+// Define keys
+const STRIPE_TEST_KEY = "pk_test_7DoZiEh5gsTdhGuh2a5Rf0Px"; // MMode Test Key
+const STRIPE_LIVE_KEY = "pk_live_PLACEHOLDER_KEY"; // Replace with your actual Live Key
+
+const STRIPE_PUBLISHABLE_KEY = isTestMode ? STRIPE_TEST_KEY : STRIPE_LIVE_KEY;
+
 const MAKE_WEBHOOK_URL =
   "https://hook.us1.make.com/2n32xzpj9q5xl5h2jgy33erruv5m6tfo";
 
@@ -78,6 +84,7 @@ async function initializeCheckout(customValue) {
       memberSCID,
       memberATID,
       memberWFID,
+      mode,
     }),
   });
 
